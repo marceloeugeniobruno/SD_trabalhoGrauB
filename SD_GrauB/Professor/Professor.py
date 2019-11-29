@@ -1,13 +1,14 @@
-"""
-
-
-"""
 import threading
 import os
 import socket
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
 
 udp_ip = '127.0.0.1'
 udp_porta = 6156
+ftp_upload = 6157
+ftp_download = 6158
 lista_de_alunos = [('Marcelo', '127.0.0.2', 6156)]
 
 
@@ -16,7 +17,28 @@ class FTPupload(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        print('tread ftp upload')
+        authorizer = DummyAuthorizer()
+        # TODO: fazer codificação para ajustar os usuários
+        authorizer.add_user("user", "8231335704", "Uploadalunos", perm="elradfmw")
+        authorizer.add_anonymous("Uploadalunos", perm="elradfmw")
+        handler = FTPHandler
+        handler.authorizer = authorizer
+        server = FTPServer((udp_ip, ftp_upload), handler)  # host goes here
+        server.serve_forever()
+
+
+class FTPdownload(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        authorizer = DummyAuthorizer()
+        authorizer.add_user("user", "8231335704", "pasta", perm="elradfmw")
+        authorizer.add_anonymous("pasta", perm="elradfmw")
+        handler = FTPHandler
+        handler.authorizer = authorizer
+        server = FTPServer((udp_ip, ftp_download), handler)  # host goes here
+        server.serve_forever()
 
 
 class UDPrec(threading.Thread):
@@ -42,6 +64,7 @@ class Varredura(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
+
         arquivos = list(os.scandir('pasta'))
         arquivos2 = []
         arquivo = None
@@ -81,7 +104,6 @@ class Varredura(threading.Thread):
                             j = len(arquivos2)
                 if k:
                     arquivo = arquivos2[i]
-                    print(f'novo arquivo {arquivos2[i].name}')
                     i = len(arquivos2)
         for i in range(0, len(lista_de_alunos)):
             msg = f'Arquivo_atualizado {arquivo.name}'
@@ -89,18 +111,19 @@ class Varredura(threading.Thread):
             sock.sendto(msg.encode(), (lista_de_alunos[i][1], lista_de_alunos[i][2]))
             sock.close()
         # TODO: FTP para as pastas dos alunos
-        print(li)
 
 
 tread_FTP = FTPupload()
+tread_FTP_d = FTPdownload()
 tread_UDP = UDPrec(udp_ip, udp_porta)
 tread_var = Varredura()
 
 tread_FTP.start()
+tread_FTP_d.start()
 tread_UDP.start()
 tread_var.start()
 
-treads = [tread_var, tread_UDP]
+treads = [tread_var, tread_UDP,tread_FTP, tread_FTP_d]
 
 for t in treads:
     t.join()

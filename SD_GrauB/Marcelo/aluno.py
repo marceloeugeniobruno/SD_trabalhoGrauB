@@ -5,10 +5,13 @@
 import threading
 import os
 import socket
+from ftplib import FTP
+from os import rename
 
 udp_ip = '127.0.0.2'
 udp_porta = 6156
 professor = ('Cassiano', '127.0.0.1', 6156)
+nome = 'Marcelo'
 
 
 class FTPupload(threading.Thread):
@@ -31,7 +34,7 @@ class UDPrec(threading.Thread):
         try:
             while True:
                 data, addr = self.sock.recvfrom(1024)
-                print(f'menensagem recebida de : {data}')
+                print(f'menssagem recebida de : {data}')
         except:
             print('erro de conexão')
         print('tread UDP')
@@ -88,7 +91,18 @@ class Varredura(threading.Thread):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.sendto(msg.encode(), (professor[1], professor[2]))
         sock.close()
-        # TODO: FTP para as pastas dos alunos
+        # -----------XXXXX  FTP  UPLOAD           XXX-----------
+        ftp = FTP('')
+        ftp.connect('127.0.0.1', 6157)  # address to connect goes here
+        ftp.login()
+        ftp.cwd('')  # replace with your directory
+        ftp.retrlines('LIST')
+        # rename('alu.txt', 'Marcelo - ' + 'alu.txt')
+        filename = nome + ' - '+ arquivo.name  # replace with your file in your home folder
+        # rename('alu.txt', 'Marcelo - ' + 'alu.txt')
+        ftp.storbinary('STOR ' + filename, open(arquivo, 'rb'))
+        ftp.quit()
+        # -----------------------------------------------------------
         print(li)
 
 
